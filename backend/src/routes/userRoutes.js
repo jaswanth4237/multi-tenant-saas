@@ -15,5 +15,17 @@ router.get(
   userController.listUsers
 );
 
+router.put(
+  "/users/:userId",
+  auth,
+  userController.updateUser
+);
+
+router.delete(
+  "/users/:userId",
+  auth,
+  userController.deleteUser
+);
+
 
 module.exports = router;
