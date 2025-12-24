@@ -180,3 +180,60 @@ exports.updateProject = async (req, res) => {
     });
   }
 };
+
+exports.deleteProject = async (req, res) => {
+  const { projectId } = req.params;
+  const tenantId = req.user.tenantId;
+  const userId = req.user.userId;
+
+  try {
+    const projectResult = await pool.query(
+      "SELECT * FROM projects WHERE id = $1",
+      [projectId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found"
+      });
+    }
+
+    const project = projectResult.rows[0];
+
+    // Tenant isolation
+    if (project.tenant_id !== tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized tenant access"
+      });
+    }
+
+    // Authorization
+    if (
+      req.user.role !== "tenant_admin" &&
+      project.created_by !== userId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this project"
+      });
+    }
+
+    await pool.query(
+      "DELETE FROM projects WHERE id = $1",
+      [projectId]
+    );
+
+    return res.json({
+      success: true,
+      message: "Project deleted successfully"
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
