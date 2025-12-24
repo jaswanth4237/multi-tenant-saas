@@ -300,3 +300,46 @@ exports.updateTask = async (req, res) => {
     });
   }
 };
+
+exports.deleteTask = async (req, res) => {
+  const { taskId } = req.params;
+  const tenantId = req.user.tenantId;
+
+  try {
+    const taskResult = await pool.query(
+      "SELECT tenant_id FROM tasks WHERE id = $1",
+      [taskId]
+    );
+
+    if (taskResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found"
+      });
+    }
+
+    // Tenant isolation
+    if (taskResult.rows[0].tenant_id !== tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized tenant access"
+      });
+    }
+
+    await pool.query(
+      "DELETE FROM tasks WHERE id = $1",
+      [taskId]
+    );
+
+    return res.json({
+      success: true,
+      message: "Task deleted successfully"
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
