@@ -196,3 +196,107 @@ exports.updateTaskStatus = async (req, res) => {
     });
   }
 };
+
+exports.updateTask = async (req, res) => {
+  const { taskId } = req.params;
+  const { title, description, priority, assignedTo, dueDate } = req.body;
+  const tenantId = req.user.tenantId;
+
+  try {
+    // Fetch task
+    const taskResult = await pool.query(
+      "SELECT * FROM tasks WHERE id = $1",
+      [taskId]
+    );
+
+    if (taskResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found"
+      });
+    }
+
+    const task = taskResult.rows[0];
+
+    // Tenant isolation
+    if (task.tenant_id !== tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized tenant access"
+      });
+    }
+
+    // Validate assigned user
+    if (assignedTo) {
+      const userResult = await pool.query(
+        "SELECT id FROM users WHERE id = $1 AND tenant_id = $2",
+        [assignedTo, tenantId]
+      );
+
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Assigned user does not belong to this tenant"
+        });
+      }
+    }
+
+    const updates = [];
+    const values = [];
+    let index = 1;
+
+    if (title !== undefined) {
+      updates.push(`title = $${index++}`);
+      values.push(title);
+    }
+
+    if (description !== undefined) {
+      updates.push(`description = $${index++}`);
+      values.push(description);
+    }
+
+    if (priority !== undefined) {
+      updates.push(`priority = $${index++}`);
+      values.push(priority);
+    }
+
+    if (assignedTo !== undefined) {
+      updates.push(`assigned_to = $${index++}`);
+      values.push(assignedTo);
+    }
+
+    if (dueDate !== undefined) {
+      updates.push(`due_date = $${index++}`);
+      values.push(dueDate);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update"
+      });
+    }
+
+    values.push(taskId);
+
+    const result = await pool.query(
+      `UPDATE tasks
+       SET ${updates.join(", ")}, updated_at = NOW()
+       WHERE id = $${index}
+       RETURNING *`,
+      values
+    );
+
+    return res.json({
+      success: true,
+      message: "Task updated successfully",
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};

@@ -21,5 +21,11 @@ router.patch(
   taskController.updateTaskStatus
 );
 
+router.put(
+  "/tasks/:taskId",
+  auth,
+  taskController.updateTask
+);
+
 
 module.exports = router;
