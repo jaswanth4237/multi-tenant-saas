@@ -7,20 +7,19 @@ const app = express();
 // app.use(cors({ origin: process.env.FRONTEND_URL }));
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:3001",
   "http://frontend:3000",
 ];
+
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (Postman, curl)
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
-      return callback(new Error("Not allowed by CORS"));
+      return callback(new Error("CORS not allowed"));
     },
     credentials: true,
   })
