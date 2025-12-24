@@ -57,3 +57,35 @@ exports.createProject = async (req, res) => {
     });
   }
 };
+
+exports.listProjects = async (req, res) => {
+  const tenantId = req.user.tenantId;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+         p.id,
+         p.name,
+         p.description,
+         p.status,
+         p.created_at,
+         u.full_name AS created_by
+       FROM projects p
+       JOIN users u ON p.created_by = u.id
+       WHERE p.tenant_id = $1
+       ORDER BY p.created_at DESC`,
+      [tenantId]
+    );
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};

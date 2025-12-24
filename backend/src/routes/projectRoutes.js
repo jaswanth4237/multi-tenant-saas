@@ -9,4 +9,10 @@ router.post(
   projectController.createProject
 );
 
+router.get(
+  "/projects",
+  auth,
+  projectController.listProjects
+);
+
 module.exports = router;
