@@ -9,6 +9,8 @@ app.use(express.json());
 app.use("/api", userRoutes);
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/projectRoutes"));
+app.use("/api", require("./routes/taskRoutes"));
+
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", database: "connected" });
