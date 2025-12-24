@@ -15,4 +15,10 @@ router.get(
   projectController.listProjects
 );
 
+router.put(
+  "/projects/:projectId",
+  auth,
+  projectController.updateProject
+);
+
 module.exports = router;

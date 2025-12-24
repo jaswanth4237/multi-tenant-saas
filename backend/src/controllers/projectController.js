@@ -89,3 +89,94 @@ exports.listProjects = async (req, res) => {
     });
   }
 };
+
+exports.updateProject = async (req, res) => {
+  const { projectId } = req.params;
+  const { name, description, status } = req.body;
+  const tenantId = req.user.tenantId;
+  const userId = req.user.userId;
+
+  try {
+    // Fetch project
+    const projectResult = await pool.query(
+      "SELECT * FROM projects WHERE id = $1",
+      [projectId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found"
+      });
+    }
+
+    const project = projectResult.rows[0];
+
+    // Tenant isolation
+    if (project.tenant_id !== tenantId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized tenant access"
+      });
+    }
+
+    // Authorization
+    if (
+      req.user.role !== "tenant_admin" &&
+      project.created_by !== userId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this project"
+      });
+    }
+
+    const updates = [];
+    const values = [];
+    let index = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${index++}`);
+      values.push(name);
+    }
+
+    if (description !== undefined) {
+      updates.push(`description = $${index++}`);
+      values.push(description);
+    }
+
+    if (status !== undefined) {
+      updates.push(`status = $${index++}`);
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update"
+      });
+    }
+
+    values.push(projectId);
+
+    const result = await pool.query(
+      `UPDATE projects
+       SET ${updates.join(", ")}, updated_at = NOW()
+       WHERE id = $${index}
+       RETURNING *`,
+      values
+    );
+
+    return res.json({
+      success: true,
+      message: "Project updated successfully",
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
