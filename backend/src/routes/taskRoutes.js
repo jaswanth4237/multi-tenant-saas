@@ -15,5 +15,11 @@ router.get(
   taskController.listProjectTasks
 );
 
+router.patch(
+  "/tasks/:taskId/status",
+  auth,
+  taskController.updateTaskStatus
+);
+
 
 module.exports = router;
