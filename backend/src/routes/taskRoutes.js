@@ -9,4 +9,11 @@ router.post(
   taskController.createTask
 );
 
+router.get(
+  "/projects/:projectId/tasks",
+  auth,
+  taskController.listProjectTasks
+);
+
+
 module.exports = router;
